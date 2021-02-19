@@ -1,15 +1,22 @@
 import datetime
+import time
+
 import vk_api
 from vk_api import VkUpload
 from vk_api.longpoll import VkLongPoll, VkEventType
 from random import randint
 
 Sas = 0
-print(True)
 
+
+# Главный словарь для регестрации по классам
+Persons = {}
+
+# Главная функция отправки сообщения пользователю
 def write_msg(user_id, message):
     vk.method('messages.send', {'user_id': user_id, 'message': message, 'random_id': 0})
 
+# Разделение времяного периода
 now = datetime.datetime.now()
 Month = now.month
 Day = now.day
@@ -26,6 +33,10 @@ api = vk_api.API(vk)
 # Работа с сообщениями
 longpoll = VkLongPoll(vk)
 
+# Место для создания цикла Сохранения параметров Регестрации (Пока что всё сохраняестся в оперативной памяти. Есть два развития: Сохранять по регестрации или сохранять все файлы через 5 минут (Это уменьшит нагрузку на сервер))
+
+
+
 # Основной цикл
 for event in longpoll.listen():
 
@@ -37,34 +48,48 @@ for event in longpoll.listen():
 
             # Сообщение от пользователя
             request = event.text.lower()
+            IdPerson = event.user_id
 
-            user = vk.method("users.get", {"user_ids": event.user_id})
+            user = vk.method("users.get", {"user_ids": IdPerson})
 
-            print(event.user_id)
+            print(IdPerson)
 
             # Каменная логика ответа
             if request == "привет":
-                if event.user_id == 314984632:
-                    write_msg(event.user_id, "Привет " + "Господин " + user[0]["first_name"])
-                elif event.user_id == 267591369:
-                    write_msg(event.user_id, "Привет " + "Госпожа " + user[0]["first_name"])
-                else:
-                    write_msg(event.user_id, "Привет")
+                write_msg(IdPerson, "Здравствуй " + user[0]["first_name"] + " ♥")
+            elif request == "регестрация":
+                if not IdPerson in Persons:
+                    write_msg(IdPerson,
+                              "Ох да ты не зарегестрирован. Напиши номер класса и букву вместе с командой /reg. Например /reg 9ж")
             elif request == "пока":
-                write_msg(event.user_id, "Пока((")
+                write_msg(IdPerson, "Пока((")
             elif request == "что делаешь?" or request == "что делаешь":
-                write_msg(event.user_id, "Приветствуюсь))) Иди делай уроки.")
-                if event.user_id == 267591369 or event.user_id == 314984632:
-                    write_msg(event.user_id, "Ой какое сегодя число? хм? Ща взгляну!")
-                    write_msg(event.user_id, str(now.day) + "." + str(now.month) + "." + str(now.year))
-                    if Month <= 1:
-                        if Day == 31:
-                            write_msg(event.user_id, "Можешь отдыхать завтра страдать♥")
+                write_msg(IdPerson, "Я пока что мало что умею.")
+
+            # Всякие команды
+            elif request[0] == "/":
+                # Команда регистрации в словаре Persons
+                if request.split(' ')[0] == "/reg":
+                    if not IdPerson in Persons:
+                        if len(request.split(' ')) == 2:
+                            Persons[IdPerson] = request.split(' ')[1]
+                            print(Persons)
+                            write_msg(IdPerson,
+                                      "Сервер каждые пять минут сохраняет новых пользователей так чтобы проверить остались ли вы в списке напишите /ILIST")
                         else:
-                            write_msg(event.user_id, "Пока отдыхай")
+                            write_msg(IdPerson, "У вас возникла ошибка &#128532;, вы ввели или слишком много букв &#128579; или не ввели не единой буквы!!!&#128545;")
                     else:
-                        write_msg(event.user_id, "Иди работай!")
-            elif request == "кинь картинку" or request == "кинь мужика" or request == "требую мужика":
-                write_msg(event.user_id, "https://sun9-22.userapi.com/impg/Rk-LzqG-6f9TpH2r6Ifdty3ORjg0wAHThP87fg/zBZThssYeZg.jpg?size=1042x1080&quality=96&sign=4cb8119cbaf1712268d7e5e58093d71d&type=album")
+                        write_msg(IdPerson,
+                                  "Изивини ты уже зарегестрирован. Однако ты можешь изменить значение в любое время командой /rereg и цыфра класса плюс буква &#9786;")
+                # Команда для проверки есть ли пользователь в словаре Persons
+                if request.split(' ')[0] == "/ilist":
+                    if IdPerson in Persons:
+                        write_msg(IdPerson,
+                                  "Вы в первоначальном списке♥, к сожилению мы пока что не обновляли сотояние серверов.")
+                    else:
+                        write_msg(IdPerson,
+                                  "Вы не зарегестрированы, для регистрации используйте команду /reg (Номер класса Буква клаcса) Например /reg 9ж")
+
+
             else:
-                write_msg(event.user_id, "Непон...")
+                write_msg(IdPerson, "Непон...")
